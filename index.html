@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#050807">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="TRIDENT">
+<meta name="application-name" content="TRIDENT">
+<meta name="format-detection" content="telephone=no">
 <title>TRIDENT // STANDBY — Navy SEAL Tactical Operations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +24,10 @@ html,body{background:var(--bg);color:var(--tx);font-family:'Share Tech Mono',ui-
 body{min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#0d1c14 0%,var(--bg) 60%) fixed}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:300;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0,rgba(0,0,0,.16) 1px,transparent 1px,transparent 3px)}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:299;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.6) 100%)}
-button{font:inherit;color:inherit}
+button{font:inherit;color:inherit;touch-action:manipulation}
+html{overscroll-behavior:none}body{-webkit-tap-highlight-color:transparent;padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
+.app-mode button,.app-mode .btn,.app-mode .tab{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.inst{margin-top:6px}.inst .small{max-width:520px}
 input{font:inherit}
 h1,h2,h3,.hd{font-family:'Rajdhani',sans-serif;letter-spacing:.06em}
 b{color:#e9fff0}
@@ -835,7 +847,7 @@ function updTB(){const el=$('#tbR');if(!el)return;if(!S){el.innerHTML=`<button c
 /* ---------------- TITLE / NEW ---------------- */
 function renderTitle(){stopTick();closeOv();const hs=!!S;
  scr().innerHTML=`<div class="title fade"><div class="tri">${TRIDENT}</div><div><h1>TRIDENT<span>//</span>STANDBY</h1><div class="sub">NAVAL SPECIAL WARFARE · TACTICAL OPERATIONS SIMULATOR</div></div>
- <div class="tbtns">${hs?`<button class="btn a big" data-a="continue">CONTINUE — ${RANKS[rankIdx(S.xp)].a} "${esc(S.cs)}"</button>`:''}<button class="btn big" data-a="newcareer">${hs?'START NEW CAREER':'ENLIST'}</button></div>
+ <div class="tbtns">${hs?`<button class="btn a big" data-a="continue">CONTINUE — ${RANKS[rankIdx(S.xp)].a} "${esc(S.cs)}"</button>`:''}<button class="btn big" data-a="newcareer">${hs?'START NEW CAREER':'ENLIST'}</button></div>${installHTML()}
  <div class="dim small" style="max-width:520px">You are a Navy SEAL operator on standby. You don't choose when the phone rings — you only choose how ready you are when it does. Sound recommended. Progress saves automatically in this browser.</div></div>`;updTB();}
 let NEW={spec:'cqb'};
 function renderNew(){S_view('new');
@@ -877,6 +889,7 @@ function tabOld(t){
   <div class="lbl" style="margin-top:18px">AUDIO</div>${[['vol','MASTER VOLUME'],['sfx','WEAPONS & EFFECTS'],['amb','AMBIENCE'],['radio','RADIO COMMS']].map(([k,l])=>`<div class="vrow"><span>${l}</span><input type="range" min="0" max="100" value="${Math.round(S.au[k]*100)}" data-vol="${k}"><span id="vl_${k}">${Math.round(S.au[k]*100)}</span></div>`).join('')}
   <div class="small dim" style="margin:10px 0 6px">VOICE ON THE RADIO</div><div class="row">${[['chatter','RECORDED CHATTER'],['tts','SPOKEN (BROWSER VOICE)'],['off','SQUELCH ONLY']].map(([k,l])=>`<button class="btn ${S.au.voice===k?'a':''}" data-a="voice" data-v="${k}">${l}</button>`).join('')}</div>
   <div class="small dim" style="margin:10px 0 6px">SOUND CHECK</div><div class="row"><button class="btn" data-a="sndtest" data-v="gun">GUNFIRE</button><button class="btn" data-a="sndtest" data-v="boom">EXPLOSION</button><button class="btn" data-a="sndtest" data-v="radio">RADIO</button><button class="btn" data-a="sndtest" data-v="reload">RELOAD</button></div>
+  <div class="lbl" style="margin-top:18px">APP</div>${installHTML(true)}
   <div class="lbl" style="margin-top:18px">REALISM</div><button class="btn ${S.realism&&S.realism.kia?'a':''}" data-a="kiatog">PERMANENT CASUALTIES: ${S.realism&&S.realism.kia?'ON':'OFF'}</button><p class="small dim" style="margin-top:6px">When ON, critically wounded teammates who don't get treatment or CASEVAC in time can be killed in action, and are replaced days later by a new operator.</p>
   <div class="lbl" style="margin-top:18px">DANGER ZONE</div><button class="btn r" data-a="reset">ERASE CAREER</button><p class="dim small" style="margin-top:12px">Progress is stored locally in this browser (LocalStorage). Clearing site data will erase it.</p></div>`;}
  return '';}
@@ -2522,9 +2535,27 @@ Object.assign(A,{
  trooppost(v){TEAM.forEach(t=>{const st=S.team[t.id];if(st.vac>S.time||st.wia>S.time||st.where==='leave')return;st.post=v==='standby'?'standby':null;if(v==='standby'&&st.where==='home')st.where='barracks';});comms('LOG',v==='standby'?'Troop placed on standby — all hands on base.':'Troop released to normal routine.');save();keepScroll(()=>renderBase('team'));},
  kiatog(){S.realism.kia=!S.realism.kia;save();keepScroll(()=>renderBase('system'));}});
 
+
+/* ---------------- APP / PWA ---------------- */
+const IS_APP=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
+const IS_IOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let INSTP=null;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();INSTP=e;refreshInstall();});
+addEventListener('appinstalled',()=>{INSTP=null;toast('<span class="g">TRIDENT installed — launch it from your home screen.</span>');refreshInstall();});
+function refreshInstall(){if(document.querySelector('.title'))renderTitle();else if(S&&S.view==='base'&&S.tab==='system')renderBase('system');}
+function installHTML(sys){
+ if(IS_APP())return sys?'<p class="small g">Running as an installed app. Saves stay on this device.</p>':'';
+ if(INSTP)return `<div class="inst"><button class="btn a" data-a="install">⬇ INSTALL APP (HOME SCREEN)</button></div>`;
+ if(IS_IOS)return `<div class="inst"><p class="small dim">📱 iPhone/iPad: open this page in <b>Safari</b>, tap <b>Share</b> → <b>Add to Home Screen</b> to play it as a full-screen app.</p></div>`;
+ if(location.protocol==='file:')return sys?'<p class="small dim">Install works once the game is hosted (GitHub Pages).</p>':'';
+ return sys?'<p class="small dim">To install: open your browser menu → <b>Install app</b> / <b>Add to Home screen</b>.</p>':'';}
+Object.assign(A,{install(){if(!INSTP)return;INSTP.prompt();INSTP.userChoice.finally(()=>{INSTP=null;refreshInstall();});}});
+if(IS_APP())document.documentElement.classList.add('app-mode');
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&S)save();});
+addEventListener('pagehide',()=>{if(S)save();});
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 /* ---------------- BOOT ---------------- */
 loadAva();load();if(S){AU.on=S.sound!==false;AU.cfg=S.au;}renderTitle();
 </script>
 </body>
 </html>
-
